@@ -42,13 +42,7 @@ unsafe fn main() -> ! {
     //enable gpio output at io mux
     unsafe { p.IO_MUX.gpio[7].write(|w| w.mcu_sel().bits(1)) };
     //raise an interrupt to simulate an RTIC task spawn.
-    critical_section::with(|cs| {
-        SWINT
-            .borrow_ref_mut(cs)
-            .as_mut()
-            .unwrap()
-            .raise(SoftwareInterrupt::SoftwareInterrupt0);
-    });
+    user_task();
     rprintln!("returned!");
     loop {}
 }
@@ -64,18 +58,9 @@ unsafe extern "C" fn get_fp() -> usize {
         options(noreturn)
     );
 }
-#[interrupt]
-fn FROM_CPU_INTR0() {
+fn user_task() {
     //get the current frame pointer for PMP config
     let fp = unsafe { get_fp() };
-    //clear the interrupt
-    critical_section::with(|cs| {
-        SWINT
-            .borrow_ref_mut(cs)
-            .as_mut()
-            .unwrap()
-            .reset(SoftwareInterrupt::SoftwareInterrupt0);
-    });
     //define a layout vector
     let mut layout: Vec<layout_trait::Layout, 8> = Vec::new();
     //allows us access to the peripherals
