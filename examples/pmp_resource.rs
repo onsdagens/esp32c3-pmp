@@ -84,6 +84,8 @@ fn FROM_CPU_INTR0() {
     let a = Resources { gpio: p.GPIO };
     //get layout of the struct
     a.get_layout(&mut layout);
+    //set up the PMP. The entirety of this block can be generated automatically via macros,
+    //for clarity we choose to expose it.
     riscv::register::pmpaddr0::write(0x3FC8_0000 >> 2); //top of the stack region as defined by the linker script
     riscv::register::pmpaddr1::write((fp as usize) >> 2); //bottom of the call stack
     riscv::register::pmpaddr2::write(0x4200_0000 >> 2); //instruction memory start as defined by the linker script
