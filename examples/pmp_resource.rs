@@ -47,7 +47,7 @@ unsafe fn main() -> ! {
     loop {}
 }
 
-//returns current stack pointer, not sure if this is the best way to do it.
+//returns current frame pointer
 #[naked]
 unsafe extern "C" fn get_fp() -> usize {
     asm!(
