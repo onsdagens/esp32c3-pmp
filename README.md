@@ -35,4 +35,4 @@ in the root of this directory. The command will compile the pmp_resource example
 
 NOTE: The GPIO pin used to toggle the LED assumes a ESP32-C3-DevKit-RUST-1 . For other development boards, the LED pin might not match up.
 
-To trigger a PMP fault caused by unallowed peripheral access, simply try accessing a non-GPIO peripheral from the ``blinky`` function in the example e.g. by uncommenting the last line.
+To trigger a PMP fault caused by unallowed peripheral access, simply try accessing a non-GPIO peripheral from the ``blinky`` function in the example e.g. by uncommenting the first line.
