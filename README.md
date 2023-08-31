@@ -1,64 +1,36 @@
-# esp32c3-test
+# Layout trait example
 
-Playground for experimentation with the esp32c3-rust board.
+This repo showcases a simple use case for the layout trait.
 
----
+## Installing the toolchain
+Before we compile and flash the example, we need to install a toolchain. Thankfully, the Rust toolchain gives us Cargo, and excellent way to manage our toolchain and dependencies.
+To install the Rust toolchain on your target OS, follow the instructions [here](https://www.rust-lang.org/tools/install). 
 
-## Resources
+On UNIX operating systems, this amounts to running
 
-- [esp-rust-board](https://github.com/esp-rs/esp-rust-board)
-- [esp32c3](https://www.espressif.com/sites/default/files/documentation/esp32-c3_technical_reference_manual_en.pdf)
+```curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh```
 
----
+in a terminal window, and following the on-screen instructions.
 
-## Setup
 
-`espflash` and `cargo-espflash` are optional. We use the `imac` target with emulated atomics. 
+To compile for a RISC-V IMAC target, we must also add it to our toolchain. Simply run
 
-```shell
-rustup target add riscv32imac-unknown-none-elf
-cargo install cargo-espflash espflash
-```
+``rustup target add riscv32imac-unknown-none-elf``  
 
----
+in a terminal window.
 
-## Configuration
+Next, we use the ``probe-rs`` utility to allow us to easily flash our target, and conveniently provide us with debugging capabilities including printing.
 
-For now we want to generate binaries executable from flash. This is achieved through the `direct-boot` build feature enabled by default (in the `Cargo.toml`). 
+Probe-rs can be installed by following the instructions [here](https://probe.rs/docs/getting-started/installation/). 
 
-The `.cargo/config.toml` sets the runner:
+For Arch users, there exists a work in progress ``probe-rs`` Arch package [here](https://github.com/hannobraun/probe-rs-arch/tree/main), which is a decent starting point.
 
-``` toml
-runner = "espflash --format direct-boot --monitor"
-```
 
-This allows you to use `cargo run` to flash and run your program, e.g.:
+## Running the example
+With the toolchain set up, all that remains is running
 
-``` shell
-cargo run --example blinky_rtt
-```
+```cargo embed --example pmp_resource --release```
 
-(Notice, we use `rtt` tracing which is not supported by `espflash` so you will only see the blinking.)
+in the root of this directory. The command will compile the pmp_resource example, flash the binary to your ESP32-C3 and open a debug print window.
 
----
-
-## Examples
-
-- `panic` using the `rtt_target` and `panic_rtt_target`.
-- `gpio_interrupt`, using the `boot` pin to trigger an interrupt, the `led` blinks independently.
-- `blinky_rtt` similar to `gpio_interrupt` (but only blinking)
-- `blinky_usart` blinks and traces over both RTT and usart (not validated)
-- `serial_interrupt` some sort of weird serial cmd receiver (not validated)
-
----
-
-## Debugging in vscode
-
-The `.vscode` folder provides `launch.json` and `tasks.json` configuration files for using [probe-rs-debugger](https://probe.rs/docs/tools/vscode/) in a seamless fashion. 
-
----
-
-## Notes
-
-The `Cargo.toml` and `.cargo/config` are now distilled to a minimum for experimentation. We rely on emulated atomics for `imac` target, allowing us to use the current `rtt_target`. 
-
+To trigger a PMP fault caused by unallowed peripheral access, simply try accessing a non-GPIO peripheral from the ``blinky`` function in the example e.g. by uncommenting the last line.
