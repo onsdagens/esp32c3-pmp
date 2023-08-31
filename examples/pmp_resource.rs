@@ -59,6 +59,8 @@ unsafe extern "C" fn get_fp() -> usize {
     );
 }
 fn user_task() {
+    //The entirety of this block can be generated automatically via macros,
+    //for clarity we choose to expose it.
     //get the current frame pointer for PMP config
     let fp = unsafe { get_fp() };
     //define a layout vector
@@ -69,8 +71,7 @@ fn user_task() {
     let a = Resources { gpio: p.GPIO };
     //get layout of the struct
     a.get_layout(&mut layout);
-    //set up the PMP. The entirety of this block can be generated automatically via macros,
-    //for clarity we choose to expose it.
+    //set up the PMP
     riscv::register::pmpaddr0::write(0x3FC8_0000 >> 2); //top of the stack region as defined by the linker script
     riscv::register::pmpaddr1::write((fp as usize) >> 2); //bottom of the call stack
     riscv::register::pmpaddr2::write(0x4200_0000 >> 2); //instruction memory start as defined by the linker script
