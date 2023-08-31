@@ -3,7 +3,7 @@
 This repo showcases a simple use case for the layout trait.
 
 ## Installing the toolchain
-Before we compile and flash the example, we need to install a toolchain. Thankfully, the Rust toolchain gives us Cargo, and excellent way to manage our toolchain and dependencies.
+Before we compile and flash the example, we need to install a toolchain. Thankfully, the Rust toolchain gives us rustup and cargo, an excellent way to manage our toolchain and dependencies.
 To install the Rust toolchain on your target OS, follow the instructions [here](https://www.rust-lang.org/tools/install). 
 
 On UNIX operating systems, this amounts to running
