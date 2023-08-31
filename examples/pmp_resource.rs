@@ -5,13 +5,10 @@
 use core::arch::asm;
 use core::cell::RefCell;
 use critical_section::Mutex;
-use esp32c3::{Peripherals as pac_p, AES, GPIO};
+use esp32c3::{Peripherals, AES, GPIO};
 use esp32c3_hal::{
-    interrupt,
-    peripherals::{self, Peripherals},
     prelude::*,
     riscv::{self, register},
-    system::{SoftwareInterrupt, SoftwareInterruptControl},
 };
 use heapless::Vec;
 use layout_derive::Layout;
@@ -23,41 +20,23 @@ use rtt_target::{rprintln, rtt_init_print};
 struct Resources {
     gpio: GPIO,
 }
-
-static SWINT: Mutex<RefCell<Option<SoftwareInterruptControl>>> = Mutex::new(RefCell::new(None));
 #[entry]
 unsafe fn main() -> ! {
     rtt_init_print!();
     rprintln!("init");
-    let p = Peripherals::take();
-    let system = p.SYSTEM.split();
-    let sw_int = system.software_interrupt_control;
-
-    critical_section::with(|cs| SWINT.borrow_ref_mut(cs).replace(sw_int));
-    interrupt::enable(
-        peripherals::Interrupt::FROM_CPU_INTR0,
-        interrupt::Priority::Priority3,
-    )
-    .unwrap();
+    let p = Peripherals::take().unwrap();
     //enable gpio output at io mux
-    unsafe { p.IO_MUX.gpio[7].write(|w| w.mcu_sel().bits(1)) };
-    //raise an interrupt to simulate an RTIC task spawn.
+    unsafe {
+        p.IO_MUX.gpio[7].write(|w| w.mcu_sel().bits(1));
+        p.GPIO.func_out_sel_cfg[7].write(|w| w.out_sel().bits(128)); //GPIO output setup
+        p.GPIO.enable.write(|w| w.bits(1 << 7));
+    };
+    //spawn a user task
     user_task();
     rprintln!("returned!");
     loop {}
 }
 
-//returns current frame pointer
-#[naked]
-unsafe extern "C" fn get_fp() -> usize {
-    asm!(
-        "
-    mv a0, s0
-    jr ra
-    ",
-        options(noreturn)
-    );
-}
 fn user_task() {
     //The entirety of this block can be generated automatically via macros,
     //for clarity we choose to expose it.
@@ -66,7 +45,7 @@ fn user_task() {
     //define a layout vector
     let mut layout: Vec<layout_trait::Layout, 8> = Vec::new();
     //allows us access to the peripherals
-    let p = unsafe { pac_p::steal() };
+    let p = unsafe { Peripherals::steal() };
     //wrap the GPIO resource in a resource struct
     let a = Resources { gpio: p.GPIO };
     //get layout of the struct
@@ -216,8 +195,9 @@ fn user_task() {
 }
 
 unsafe fn blinky(r: Resources, a: AES) {
-    r.gpio.func_out_sel_cfg[7].write(|w| w.out_sel().bits(128)); //GPIO output setup
-    r.gpio.enable.write(|w| w.bits(1 << 7));
+    //this is not declared as part of resources, so will cause a PMP violation, uncomment to try.
+    //a.dma_enable.write(|w|w.bits(0x1337));
+
     r.gpio.out.write(|w| w.bits(1 << 7)); //Set LED pin high
     let mut i = 0; //Delay
     while i < 2000000 {
@@ -225,7 +205,16 @@ unsafe fn blinky(r: Resources, a: AES) {
         i += 1
     }
     r.gpio.out.write(|w| w.bits(0 << 7)); //Set LED pin low
+}
 
-    //this is not declared as part of resources, so will cause a PMP violation, uncomment to try.
-    //a.dma_enable.write(|w|w.bits(0x1337));
+//returns current frame pointer
+#[naked]
+unsafe extern "C" fn get_fp() -> usize {
+    asm!(
+        "
+    mv a0, s0
+    jr ra
+    ",
+        options(noreturn)
+    );
 }
